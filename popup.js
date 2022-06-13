@@ -1,8 +1,9 @@
 let sendButton = document.getElementById("send");
 let text = document.getElementById("text");
 
-let sendButton2 = document.getElementById("send2");
-let text2 = document.getElementById("text2");
+chrome.storage.sync.set({siteNumber: 0}, function() {
+    console.log('INIT');
+});
 
 sendButton.addEventListener("click", async () => {
     let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -14,15 +15,17 @@ sendButton.addEventListener("click", async () => {
     });
   });
 
-sendButton2.addEventListener("click", async () => {
-    let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-
-    chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        function: main,
-        args: [sendButton2, text2.value],
+setInterval(function(){
+    chrome.storage.sync.get(['siteNumber'], function(result) {
+        if(result.siteNumber){
+            sendButton.innerHTML = 'Sended...(Row:'+(result.siteNumber)+')';
+            sendButton.classList.add('processed');
+        }else{
+            sendButton.innerHTML = 'Start';
+            sendButton.classList.remove('processed');
+        }
     });
-});
+},100);
 
 function main(sendButton, messages) {
     if(typeof window.dsConnection == 'undefined'){
@@ -37,6 +40,7 @@ function main(sendButton, messages) {
     var siteProcessed = false;
     var siteInterval = null;
     var siteNumber = 0;
+   
     messages = messages.filter(n => n);
     if(messages.length > 0 ){
 
@@ -45,44 +49,43 @@ function main(sendButton, messages) {
             siteProcessed = true;
             window.dsConnection.send(JSON.stringify({
                 type: 'start-auto-invite',
-                payload: messages[0],
+                payload: messages[siteNumber],
                 block: true,
                 ignore: true
             }));
-            // if(siteProcessed){
-            //     sendButton.innerHTML = 'Sended...(Row:'+(siteNumber+1)+')';
-            //     sendButton.classList.add("processed");
-            // }else{
-            //     sendButton.innerHTML = 'Start';
-            //     sendButton.classList.remove("processed");
-            // }
-            
+            //console.log(messages[siteNumber]);
+            chrome.storage.sync.set({'siteNumber': siteNumber+1}, function() {
+                console.log('Value is set to ' + (siteNumber+1));
+            });
             siteNumber++;
         }, 1000);
+        
        
 
         // go from 2thd message to end
         siteInterval = setInterval(function(){
-            if(messages[siteNumber]){
-                window.dsConnection.send(JSON.stringify({
-                    type: 'start-auto-invite',
-                    payload: messages[siteNumber],
-                    block: true,
-                    ignore: true
-                }));
-                if(siteNumber == messages.length){
-                    clearInterval(siteInterval);
-                    siteProcessed = false;
-                    siteNumber = 0;
+            
+            if(siteNumber == messages.length){
+                clearInterval(siteInterval);
+                siteProcessed = false;
+                siteNumber = 0;
+                //console.log('set to 0 !!!');
+                chrome.storage.sync.set({'siteNumber': 0});
+            }else{
+                if(messages[siteNumber]){
+                    window.dsConnection.send(JSON.stringify({
+                        type: 'start-auto-invite',
+                        payload: messages[siteNumber],
+                        block: true,
+                        ignore: true
+                    }));
+                   // console.log(messages[siteNumber]);
+                    chrome.storage.sync.set({'siteNumber': siteNumber+1}, function() {
+                        console.log('Value is set to ' + (siteNumber+1));
+                    });
+                    
+                    siteNumber++;
                 }
-                // if(siteProcessed){
-                //     sendButton.innerHTML = 'Sended...(Row:'+(siteNumber+1)+')';
-                //     sendButton.classList.add("processed");
-                // }else{
-                //     sendButton.innerHTML = 'Start';
-                //     sendButton.classList.remove("processed");
-                // }
-                siteNumber++;
             }
         }, intevalTime);
     }
