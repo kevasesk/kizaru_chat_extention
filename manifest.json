@@ -1,0 +1,10 @@
+{
+    "name": "Dream Singles Chat Bot",
+    "description": "Extension for Dream Singles Chat Bot",
+    "version": "1.0",
+    "manifest_version": 3,
+    "permissions": ["storage", "activeTab", "scripting","tabs"],
+    "action": {
+        "default_popup": "popup.html"
+    }
+  }
