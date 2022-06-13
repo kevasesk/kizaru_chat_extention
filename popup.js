@@ -12,29 +12,27 @@ sendButton.addEventListener("click", async () => {
       function: main,
       args: [sendButton, text.value],
     });
-     //main(sendButton, text.value);
   });
 
 sendButton2.addEventListener("click", async () => {
     let [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
     chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    function: main,
-    args: [sendButton2, text2.value],
+        target: { tabId: tab.id },
+        function: main,
+        args: [sendButton2, text2.value],
     });
-   // main(sendButton2, text2.value);
 });
 
 function main(sendButton, messages) {
     if(typeof window.dsConnection == 'undefined'){
-        //window.dsConnection = new WebSocket('wss://ws.dream-singles.com/ws'); 
-        window.dsConnection = new WebSocket('ws://localhost:8081');
+        window.dsConnection = new WebSocket('wss://ws.dream-singles.com/ws'); 
+        //window.dsConnection = new WebSocket('ws://localhost:8081');
         window.dsConnection.onopen = function(e) {
             console.log("Connection established!");
         };
     }
-    var intevalTime = 3 * 1000; // 30 * 1000 // TODO
+    var intevalTime = 30 * 1000; // 30 * 1000 // TODO
     var messages = messages.split('\n');
     var siteProcessed = false;
     var siteInterval = null;
@@ -51,13 +49,13 @@ function main(sendButton, messages) {
                 block: true,
                 ignore: true
             }));
-            if(siteProcessed){
-                sendButton.innerHTML = 'Отправляеться...(Строка:'+(siteNumber+1)+')';
-                sendButton.classList.add("processed");
-            }else{
-                sendButton.innerHTML = 'Начать отправлять';
-                sendButton.classList.remove("processed");
-            }
+            // if(siteProcessed){
+            //     sendButton.innerHTML = 'Sended...(Row:'+(siteNumber+1)+')';
+            //     sendButton.classList.add("processed");
+            // }else{
+            //     sendButton.innerHTML = 'Start';
+            //     sendButton.classList.remove("processed");
+            // }
             
             siteNumber++;
         }, 1000);
@@ -65,26 +63,27 @@ function main(sendButton, messages) {
 
         // go from 2thd message to end
         siteInterval = setInterval(function(){
-            window.dsConnection.send(JSON.stringify({
-                type: 'start-auto-invite',
-                payload: messages[siteNumber],
-                block: true,
-                ignore: true
-            }));
-            if(siteNumber == messages.length){
-                clearInterval(siteInterval);
-                siteProcessed = false;
-                siteNumber = 0;
+            if(messages[siteNumber]){
+                window.dsConnection.send(JSON.stringify({
+                    type: 'start-auto-invite',
+                    payload: messages[siteNumber],
+                    block: true,
+                    ignore: true
+                }));
+                if(siteNumber == messages.length){
+                    clearInterval(siteInterval);
+                    siteProcessed = false;
+                    siteNumber = 0;
+                }
+                // if(siteProcessed){
+                //     sendButton.innerHTML = 'Sended...(Row:'+(siteNumber+1)+')';
+                //     sendButton.classList.add("processed");
+                // }else{
+                //     sendButton.innerHTML = 'Start';
+                //     sendButton.classList.remove("processed");
+                // }
+                siteNumber++;
             }
-            if(siteProcessed){
-                sendButton.innerHTML = 'Отправляеться...(Строка:'+(siteNumber+1)+')';
-                sendButton.classList.add("processed");
-            }else{
-                sendButton.innerHTML = 'Начать отправлять';
-                sendButton.classList.remove("processed");
-            }
-            
-            siteNumber++;
         }, intevalTime);
     }
 }
